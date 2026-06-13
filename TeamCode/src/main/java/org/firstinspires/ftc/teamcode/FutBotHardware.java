@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
-import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.SwitchableLight;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
@@ -17,11 +16,18 @@ public class FutBotHardware {
     public DcMotor motorIzq = null;
     public DcMotor motorDer = null;
 
-    // --- Sensores de color (REV Color Sensor V3 para detección de línea blanca) ---
-    public NormalizedColorSensor sensorNorte  = null; // apunta al frente del robot
-    public NormalizedColorSensor sensorSur    = null; // apunta hacia atrás
-    public NormalizedColorSensor sensorEste   = null; // apunta al lado derecho
-    public NormalizedColorSensor sensorOeste  = null; // apunta al lado izquierdo
+    // --- Sensores de color en triángulo equilátero (120° entre sí) ---
+    // Distribución óptima para chasis circular: cubre todo el perímetro con 3 sensores.
+    //
+    //         [FrenteIzq]   [FrenteDer]
+    //              \           /
+    //               \  Robot  /
+    //                \       /
+    //                [  Sur  ]
+    //
+    public NormalizedColorSensor sensorSur      = null; // 180° — cubre el arco trasero
+    public NormalizedColorSensor sensorFrenteIzq = null; // ~300° — cubre arco frente-izquierda
+    public NormalizedColorSensor sensorFrenteDer = null; //  ~60° — cubre arco frente-derecha
 
     // --- Sensor táctil (botón pull-pin de arranque) ---
     public TouchSensor botonArranque = null;
@@ -60,24 +66,20 @@ public class FutBotHardware {
         // Asegurar que el robot no se mueva durante la inicialización.
         setPoderMotores(0, 0);
 
-        // --- Mapeo de sensores de color (REV Color Sensor V3) ---
-        sensorNorte = hwMap.get(NormalizedColorSensor.class, "sensorNorte");
-        sensorSur   = hwMap.get(NormalizedColorSensor.class, "sensorSur");
-        sensorEste  = hwMap.get(NormalizedColorSensor.class, "sensorEste");
-        sensorOeste = hwMap.get(NormalizedColorSensor.class, "sensorOeste");
+        // --- Mapeo de sensores de color (triángulo equilátero, REV Color Sensor V3) ---
+        sensorSur       = hwMap.get(NormalizedColorSensor.class, "sensorSur");
+        sensorFrenteIzq = hwMap.get(NormalizedColorSensor.class, "sensorFrenteIzq");
+        sensorFrenteDer = hwMap.get(NormalizedColorSensor.class, "sensorFrenteDer");
 
-        // Configuración de ganancia (optimizado para V3)
-        // Valores altos (ej. 15-30) ayudan a detectar la línea en condiciones de poca luz.
-        sensorNorte.setGain(15);
+        // Ganancia alta para detectar blanco en condiciones de luz variable.
         sensorSur.setGain(15);
-        sensorEste.setGain(15);
-        sensorOeste.setGain(15);
+        sensorFrenteIzq.setGain(15);
+        sensorFrenteDer.setGain(15);
 
         // Activa el LED de los sensores si el hardware lo soporta.
-        enableSensorLed(sensorNorte, true);
         enableSensorLed(sensorSur, true);
-        enableSensorLed(sensorEste, true);
-        enableSensorLed(sensorOeste, true);
+        enableSensorLed(sensorFrenteIzq, true);
+        enableSensorLed(sensorFrenteDer, true);
 
         // --- Mapeo del botón de arranque ---
         botonArranque = hwMap.get(TouchSensor.class, "botonArranque");
@@ -109,28 +111,23 @@ public class FutBotHardware {
     }
 
     // -------------------------------------------------------------------------
-    // Detección de línea blanca (por sensor)
-    // El canal alfa (alpha) del NormalizedColorSensor refleja la luminosidad total (0.0 a 1.0).
+    // Detección de línea blanca — triángulo equilátero
+    // Canal alfa normalizado (0.0 a 1.0); blanco supera típicamente 0.75.
     // -------------------------------------------------------------------------
 
-    /** @return true si el sensor frontal detecta la línea blanca de la cancha. */
-    public boolean detectaBlancoNorte() {
-        return sensorNorte.getNormalizedColors().alpha >= UMBRAL_BLANCO;
-    }
-
-    /** @return true si el sensor trasero detecta la línea blanca de la cancha. */
+    /** @return true si el sensor trasero detecta la línea blanca. */
     public boolean detectaBlancoSur() {
         return sensorSur.getNormalizedColors().alpha >= UMBRAL_BLANCO;
     }
 
-    /** @return true si el sensor derecho detecta la línea blanca de la cancha. */
-    public boolean detectaBlancoEste() {
-        return sensorEste.getNormalizedColors().alpha >= UMBRAL_BLANCO;
+    /** @return true si el sensor frente-izquierda detecta la línea blanca. */
+    public boolean detectaBlancoFrenteIzq() {
+        return sensorFrenteIzq.getNormalizedColors().alpha >= UMBRAL_BLANCO;
     }
 
-    /** @return true si el sensor izquierdo detecta la línea blanca de la cancha. */
-    public boolean detectaBlancoOeste() {
-        return sensorOeste.getNormalizedColors().alpha >= UMBRAL_BLANCO;
+    /** @return true si el sensor frente-derecha detecta la línea blanca. */
+    public boolean detectaBlancoFrenteDer() {
+        return sensorFrenteDer.getNormalizedColors().alpha >= UMBRAL_BLANCO;
     }
 
     /** @return true si el botón pull-pin de arranque está presionado (retenido). */

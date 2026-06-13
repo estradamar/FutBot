@@ -19,8 +19,8 @@ public class FutBotVision {
     // Constantes de identificación de objetos (deben coincidir con el
     // entrenamiento almacenado en la HuskyLens).
     // -------------------------------------------------------------------------
-    public static final int ID_PELOTA          = 1;
-    public static final int ID_PORTERIA_AZUL   = 2;
+    public static final int ID_PELOTA            = 1;
+    public static final int ID_PORTERIA_AZUL     = 2;
     public static final int ID_PORTERIA_AMARILLA = 3;
 
     /** Columna central de la imagen (px). Se usa para calcular error angular. */
@@ -92,9 +92,9 @@ public class FutBotVision {
      *   4. Validar 0x55 0xAA y leer la cantidad de bloques del byte de longitud.
      *   5. Por cada bloque, leer 10 bytes y parsear con ByteBuffer (LITTLE_ENDIAN).
      *   6. Clasificar cada bloque por su campo 'id':
-     *        - id == ID_PELOTA           → actualizar xPelota, yPelota, anchoPelota, altoPelota
-     *        - id == ID_PORTERIA_AZUL    → actualizar xPorteria, anchoPorteria, idPorteriaDetectada
-     *        - id == ID_PORTERIA_AMARILLA→ actualizar xPorteria, anchoPorteria, idPorteriaDetectada
+     *        - id == ID_PELOTA            → actualizar xPelota, yPelota, anchoPelota, altoPelota
+     *        - id == ID_PORTERIA_AZUL     → actualizar xPorteria, anchoPorteria, idPorteriaDetectada
+     *        - id == ID_PORTERIA_AMARILLA → actualizar xPorteria, anchoPorteria, idPorteriaDetectada
      *   7. Si no se recibe ningún bloque del tipo buscado, dejar los campos en -1 / 0.
      *   8. Manejar IOException con try/catch; en caso de error poner todos los campos en -1.
      *
@@ -102,12 +102,12 @@ public class FutBotVision {
      */
     public void actualizarDatos() {
         // Resetear estado antes de cada lectura
-        xPelota          = -1;
-        yPelota          = -1;
-        anchoPelota      = 0;
-        altoPelota       = 0;
-        xPorteria        = -1;
-        anchoPorteria    = 0;
+        xPelota             = -1;
+        yPelota             = -1;
+        anchoPelota         = 0;
+        altoPelota          = 0;
+        xPorteria           = -1;
+        anchoPorteria       = 0;
         idPorteriaDetectada = -1;
 
         // TODO: Implementar lectura I2C de HuskyLens (ver bloque de comentarios arriba)
@@ -174,4 +174,5 @@ public class FutBotVision {
     public int getAnchoPorteria() {
         return anchoPorteria;
     }
+
 }
