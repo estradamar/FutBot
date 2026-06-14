@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
-import com.qualcomm.robotcore.hardware.SwitchableLight;
+import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
 /**
@@ -25,12 +25,12 @@ public class FutBotHardware {
     //                \       /
     //                [  Sur  ]
     //
-    public NormalizedColorSensor sensorSur      = null; // 180° — cubre el arco trasero
-    public NormalizedColorSensor sensorFrenteIzq = null; // ~300° — cubre arco frente-izquierda
-    public NormalizedColorSensor sensorFrenteDer = null; //  ~60° — cubre arco frente-derecha
+    public RevColorSensorV3 sensorSur      = null; // 180° — cubre el arco trasero
+    public RevColorSensorV3 sensorFrenteIzq = null; // ~300° — cubre arco frente-izquierda
+    public RevColorSensorV3 sensorFrenteDer = null; //  ~60° — cubre arco frente-derecha
 
     // --- Sensor táctil (botón pull-pin de arranque) ---
-    public TouchSensor botonArranque = null;
+    // public TouchSensor botonArranque = null;
 
     // Umbral de luminosidad para considerar que el sensor ve la línea blanca.
     // Ajustar tras calibración en campo; rango normalizado: 0.0 - 1.0.
@@ -67,9 +67,9 @@ public class FutBotHardware {
         setPoderMotores(0, 0);
 
         // --- Mapeo de sensores de color (triángulo equilátero, REV Color Sensor V3) ---
-        sensorSur       = hwMap.get(NormalizedColorSensor.class, "sensorSur");
-        sensorFrenteIzq = hwMap.get(NormalizedColorSensor.class, "sensorFrenteIzq");
-        sensorFrenteDer = hwMap.get(NormalizedColorSensor.class, "sensorFrenteDer");
+        sensorSur       = hwMap.get(RevColorSensorV3.class, "sensorSur");
+        sensorFrenteIzq = hwMap.get(RevColorSensorV3.class, "sensorFrenteIzq");
+        sensorFrenteDer = hwMap.get(RevColorSensorV3.class, "sensorFrenteDer");
 
         // Ganancia alta para detectar blanco en condiciones de luz variable.
         sensorSur.setGain(15);
@@ -82,14 +82,12 @@ public class FutBotHardware {
         enableSensorLed(sensorFrenteDer, true);
 
         // --- Mapeo del botón de arranque ---
-        botonArranque = hwMap.get(TouchSensor.class, "botonArranque");
+        // botonArranque = hwMap.get(TouchSensor.class, "botonArranque");
     }
 
-    /** Habilita o deshabilita el LED del sensor de color si es compatible. */
-    private void enableSensorLed(NormalizedColorSensor sensor, boolean enable) {
-        if (sensor instanceof SwitchableLight) {
-            ((SwitchableLight) sensor).enableLight(enable);
-        }
+    /** Habilita o deshabilita el LED del sensor de color. */
+    private void enableSensorLed(RevColorSensorV3 sensor, boolean enable) {
+        sensor.enableLed(enable);
     }
 
     // -------------------------------------------------------------------------
@@ -132,6 +130,7 @@ public class FutBotHardware {
 
     /** @return true si el botón pull-pin de arranque está presionado (retenido). */
     public boolean botonPresionado() {
-        return botonArranque.isPressed();
+        // return botonArranque.isPressed();
+        return false;
     }
 }

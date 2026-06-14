@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode.tests;
 
-import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 
 /**
- * Wrapper de diagnóstico para un NormalizedColorSensor.
+ * Wrapper de diagnóstico para un RevColorSensorV3.
  *
  * Encapsula un sensor físico junto con su nombre en el robot y la acción
  * que dispararía en el sistema de evasión real. Se usa exclusivamente en
@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
  */
 public class ColorSensorDiagnostico {
 
-    private final NormalizedColorSensor sensor;
+    private final RevColorSensorV3 sensor;
     private final String nombre;
     private final String accionSiDetecta;
     private final float umbralBlanco;
@@ -22,7 +22,7 @@ public class ColorSensorDiagnostico {
      * @param accionSiDetecta Texto de la acción que ejecutaría el robot al detectar blanco.
      * @param umbralBlanco   Valor alpha (0.0–1.0) a partir del cual se considera blanco.
      */
-    public ColorSensorDiagnostico(NormalizedColorSensor sensor,
+    public ColorSensorDiagnostico(RevColorSensorV3 sensor,
                                    String nombre,
                                    String accionSiDetecta,
                                    float umbralBlanco) {

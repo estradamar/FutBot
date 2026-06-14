@@ -1,10 +1,10 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.dfrobot.HuskyLens;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.I2cDeviceSynch;
 
 /**
- * Wrapper de comunicación I2C con la cámara HuskyLens.
+ * Wrapper de comunicación con la cámara HuskyLens.
  *
  * La HuskyLens opera en modo "Object Tracking" y devuelve bloques con:
  *   - ID del objeto reconocido
@@ -19,9 +19,9 @@ public class FutBotVision {
     // Constantes de identificación de objetos (deben coincidir con el
     // entrenamiento almacenado en la HuskyLens).
     // -------------------------------------------------------------------------
-    public static final int ID_PELOTA            = 1;
-    public static final int ID_PORTERIA_AZUL     = 2;
-    public static final int ID_PORTERIA_AMARILLA = 3;
+    public static final int ID_PELOTA            = 2;
+    public static final int ID_PORTERIA_AZUL     = 3;
+    public static final int ID_PORTERIA_AMARILLA = 1;
 
     /** Columna central de la imagen (px). Se usa para calcular error angular. */
     public static final int CENTRO_X = 160;
@@ -29,7 +29,7 @@ public class FutBotVision {
     // -------------------------------------------------------------------------
     // Dispositivo I2C
     // -------------------------------------------------------------------------
-    private I2cDeviceSynch huskyLens = null;
+    public HuskyLens huskyLens = null;
 
     // -------------------------------------------------------------------------
     // Estado interno actualizado por actualizarDatos()
@@ -56,10 +56,10 @@ public class FutBotVision {
      * en la Driver Station con el nombre "huskyLens".
      */
     public void init(HardwareMap hwMap) {
-        huskyLens = hwMap.get(I2cDeviceSynch.class, "huskyLens");
-
-        // TODO: Confirmar nombre del método en SDK para engagement del dispositivo I2C
-        huskyLens.engage();
+        huskyLens = hwMap.get(HuskyLens.class, "huskyLens");
+        
+        // Inicializa el dispositivo para empezar a comunicarse
+        huskyLens.selectAlgorithm(HuskyLens.Algorithm.OBJECT_TRACKING);
     }
 
     // -------------------------------------------------------------------------
@@ -70,35 +70,6 @@ public class FutBotVision {
      * Solicita y parsea el frame más reciente de la HuskyLens.
      * Debe llamarse una vez por ciclo del bucle principal, ANTES de consultar
      * cualquier método de lógica (hayPelota, getErrorAngular, etc.).
-     *
-     * Protocolo de comunicación HuskyLens (I2C):
-     * ─────────────────────────────────────────
-     * Cabecera:  0x55 0xAA
-     * Comando:   0x20  (REQUEST_BLOCKS - solicita bloques reconocidos)
-     * Longitud:  0x00
-     * Checksum:  suma de todos los bytes anteriores & 0xFF
-     *
-     * Respuesta por bloque (10 bytes por objeto):
-     *   Bytes 0-1: x_center  (int16, little-endian)
-     *   Bytes 2-3: y_center  (int16, little-endian)
-     *   Bytes 4-5: width     (int16, little-endian)
-     *   Bytes 6-7: height    (int16, little-endian)
-     *   Bytes 8-9: id        (int16, little-endian)
-     *
-     * TODO: Implementar lectura I2C de HuskyLens
-     *   1. Construir el array de bytes del comando REQUEST_BLOCKS.
-     *   2. Escribirlo en huskyLens con huskyLens.write(buffer).
-     *   3. Leer la cabecera de respuesta (5 bytes) con huskyLens.read(5).
-     *   4. Validar 0x55 0xAA y leer la cantidad de bloques del byte de longitud.
-     *   5. Por cada bloque, leer 10 bytes y parsear con ByteBuffer (LITTLE_ENDIAN).
-     *   6. Clasificar cada bloque por su campo 'id':
-     *        - id == ID_PELOTA            → actualizar xPelota, yPelota, anchoPelota, altoPelota
-     *        - id == ID_PORTERIA_AZUL     → actualizar xPorteria, anchoPorteria, idPorteriaDetectada
-     *        - id == ID_PORTERIA_AMARILLA → actualizar xPorteria, anchoPorteria, idPorteriaDetectada
-     *   7. Si no se recibe ningún bloque del tipo buscado, dejar los campos en -1 / 0.
-     *   8. Manejar IOException con try/catch; en caso de error poner todos los campos en -1.
-     *
-     * Referencia: HuskyLens Serial Protocol v1.6 (DFROBOT)
      */
     public void actualizarDatos() {
         // Resetear estado antes de cada lectura
@@ -110,7 +81,23 @@ public class FutBotVision {
         anchoPorteria       = 0;
         idPorteriaDetectada = -1;
 
-        // TODO: Implementar lectura I2C de HuskyLens (ver bloque de comentarios arriba)
+        HuskyLens.Block[] blocks = huskyLens.blocks();
+        
+        for (int i = 0; i < blocks.length; i++) {
+            HuskyLens.Block block = blocks[i];
+            
+            if (block.id == ID_PELOTA) {
+                xPelota = block.x;
+                yPelota = block.y;
+                anchoPelota = block.width;
+                altoPelota = block.height;
+                idDetectado = block.id;
+            } else if (block.id == ID_PORTERIA_AZUL || block.id == ID_PORTERIA_AMARILLA) {
+                xPorteria = block.x;
+                anchoPorteria = block.width;
+                idPorteriaDetectada = block.id;
+            }
+        }
     }
 
     // -------------------------------------------------------------------------

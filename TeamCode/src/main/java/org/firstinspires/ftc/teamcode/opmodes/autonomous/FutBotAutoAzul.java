@@ -85,6 +85,7 @@ public class FutBotAutoAzul extends LinearOpMode {
         // Esperar a que el árbitro presione START en la Driver Station.
         waitForStart();
 
+        /*
         // --- Arranque Seguro (Strict Rule) ---
         // El botón físico pull-pin debe estar retenido (presionado) durante el
         // posicionamiento del robot. El partido real empieza cuando se suelta.
@@ -93,6 +94,7 @@ public class FutBotAutoAzul extends LinearOpMode {
             telemetry.addData("Arranque", "Suelta el botón pull-pin para iniciar");
             telemetry.update();
         }
+        */
 
         // Resetear cronómetro del Radar al arrancar.
         tiempoRadar.reset();
