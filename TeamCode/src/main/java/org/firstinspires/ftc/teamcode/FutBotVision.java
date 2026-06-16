@@ -42,10 +42,17 @@ public class FutBotVision {
     private int altoPelota  = 0;
     private int idDetectado = -1; // ID del último objeto leído
 
-    // Portería
-    private int xPorteria     = -1;
-    private int anchoPorteria = 0;
+    // Portería — campo "último visto" (mantiene compatibilidad con tests existentes)
+    private int xPorteria           = -1;
+    private int anchoPorteria       = 0;
     private int idPorteriaDetectada = -1;
+
+    // Tracking por ID: permite consultar cada portería de forma independiente,
+    // incluso si ambas son visibles en el mismo frame.
+    private int xPorteriaAzul         = -1;
+    private int anchoPorteriaAzul     = 0;
+    private int xPorteriaAmarilla     = -1;
+    private int anchoPorteriaAmarilla = 0;
 
     // -------------------------------------------------------------------------
     // Inicialización
@@ -73,13 +80,17 @@ public class FutBotVision {
      */
     public void actualizarDatos() {
         // Resetear estado antes de cada lectura
-        xPelota             = -1;
-        yPelota             = -1;
-        anchoPelota         = 0;
-        altoPelota          = 0;
-        xPorteria           = -1;
-        anchoPorteria       = 0;
-        idPorteriaDetectada = -1;
+        xPelota               = -1;
+        yPelota               = -1;
+        anchoPelota           = 0;
+        altoPelota            = 0;
+        xPorteria             = -1;
+        anchoPorteria         = 0;
+        idPorteriaDetectada   = -1;
+        xPorteriaAzul         = -1;
+        anchoPorteriaAzul     = 0;
+        xPorteriaAmarilla     = -1;
+        anchoPorteriaAmarilla = 0;
 
         HuskyLens.Block[] blocks = huskyLens.blocks();
         
@@ -92,10 +103,19 @@ public class FutBotVision {
                 anchoPelota = block.width;
                 altoPelota = block.height;
                 idDetectado = block.id;
-            } else if (block.id == ID_PORTERIA_AZUL || block.id == ID_PORTERIA_AMARILLA) {
-                xPorteria = block.x;
-                anchoPorteria = block.width;
+            } else if (block.id == ID_PORTERIA_AZUL) {
+                xPorteriaAzul     = block.x;
+                anchoPorteriaAzul = block.width;
+                // backward-compat: actualizar "último visto" también
+                xPorteria           = block.x;
+                anchoPorteria       = block.width;
                 idPorteriaDetectada = block.id;
+            } else if (block.id == ID_PORTERIA_AMARILLA) {
+                xPorteriaAmarilla     = block.x;
+                anchoPorteriaAmarilla = block.width;
+                xPorteria             = block.x;
+                anchoPorteria         = block.width;
+                idPorteriaDetectada   = block.id;
             }
         }
     }
@@ -160,6 +180,44 @@ public class FutBotVision {
      */
     public int getAnchoPorteria() {
         return anchoPorteria;
+    }
+
+    // -------------------------------------------------------------------------
+    // Consulta por ID — tracking simultáneo de ambas porterías
+    // Usados por FutBotFSM para razonar sobre portería propia y rival por separado.
+    // -------------------------------------------------------------------------
+
+    /**
+     * @param id ID de la portería (ID_PORTERIA_AZUL o ID_PORTERIA_AMARILLA).
+     * @return true si esa portería fue detectada en el último frame.
+     */
+    public boolean hayPorteriaPorId(int id) {
+        if (id == ID_PORTERIA_AZUL)     return xPorteriaAzul     != -1;
+        if (id == ID_PORTERIA_AMARILLA) return xPorteriaAmarilla != -1;
+        return false;
+    }
+
+    /**
+     * Error angular de una portería específica respecto al centro de la imagen.
+     * Positivo → portería a la derecha del centro.
+     *
+     * @return error en px; 0.0 si esa portería no está visible.
+     */
+    public double getErrorAngularPorteriaPorId(int id) {
+        if (id == ID_PORTERIA_AZUL     && xPorteriaAzul     != -1) return xPorteriaAzul     - CENTRO_X;
+        if (id == ID_PORTERIA_AMARILLA && xPorteriaAmarilla != -1) return xPorteriaAmarilla - CENTRO_X;
+        return 0.0;
+    }
+
+    /**
+     * Ancho del bounding box de una portería específica. Proxy de distancia.
+     *
+     * @return ancho en px; 0 si esa portería no está visible.
+     */
+    public int getAnchoPorteriaPorId(int id) {
+        if (id == ID_PORTERIA_AZUL)     return anchoPorteriaAzul;
+        if (id == ID_PORTERIA_AMARILLA) return anchoPorteriaAmarilla;
+        return 0;
     }
 
 }

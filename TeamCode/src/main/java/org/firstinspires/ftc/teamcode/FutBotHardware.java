@@ -16,25 +16,25 @@ public class FutBotHardware {
     public DcMotor motorIzq = null;
     public DcMotor motorDer = null;
 
-    // --- Sensores de color en triángulo equilátero (120° entre sí) ---
-    // Distribución óptima para chasis circular: cubre todo el perímetro con 3 sensores.
+    // --- Sensores de color ---
     //
-    //         [FrenteIzq]   [FrenteDer]
-    //              \           /
-    //               \  Robot  /
-    //                \       /
-    //                [  Sur  ]
+    //          [Norte]         ← línea blanca norte
+    //             |
+    //          [Robot]──[Pelota]  ← detecta pelota naranja en posesión
+    //             |
+    //          [ Sur ]         ← línea blanca sur
     //
-    public RevColorSensorV3 sensorSur      = null; // 180° — cubre el arco trasero
-    public RevColorSensorV3 sensorFrenteIzq = null; // ~300° — cubre arco frente-izquierda
-    public RevColorSensorV3 sensorFrenteDer = null; //  ~60° — cubre arco frente-derecha
+    public RevColorSensorV3 sensorSur    = null; // línea blanca — arco sur/trasero
+    public RevColorSensorV3 sensorNorte  = null; // línea blanca — arco norte/frente
+    public RevColorSensorV3 sensorPelota = null; // pelota naranja — posesión
 
     // --- Sensor táctil (botón pull-pin de arranque) ---
     // public TouchSensor botonArranque = null;
 
-    // Umbral de luminosidad para considerar que el sensor ve la línea blanca.
     // Ajustar tras calibración en campo; rango normalizado: 0.0 - 1.0.
-    private static final float UMBRAL_BLANCO = 0.75f;
+    private static final float UMBRAL_BLANCO    = 0.75f; // línea blanca: canal alpha
+    private static final float UMBRAL_NARANJA_R = 0.35f; // naranja: mínimo rojo
+    private static final float UMBRAL_NARANJA_B = 0.12f; // naranja: máximo azul
 
     // -------------------------------------------------------------------------
     // Inicialización
@@ -66,20 +66,20 @@ public class FutBotHardware {
         // Asegurar que el robot no se mueva durante la inicialización.
         setPoderMotores(0, 0);
 
-        // --- Mapeo de sensores de color (triángulo equilátero, REV Color Sensor V3) ---
-        sensorSur       = hwMap.get(RevColorSensorV3.class, "sensorSur");
-        sensorFrenteIzq = hwMap.get(RevColorSensorV3.class, "sensorFrenteIzq");
-        sensorFrenteDer = hwMap.get(RevColorSensorV3.class, "sensorFrenteDer");
+        // --- Mapeo de sensores de color (REV Color Sensor V3) ---
+        sensorSur      = hwMap.get(RevColorSensorV3.class, "sensorSur");
+        sensorNorte    = hwMap.get(RevColorSensorV3.class, "sensorNorte");
+        sensorPelota = hwMap.get(RevColorSensorV3.class, "sensorPelota");
 
-        // Ganancia alta para detectar blanco en condiciones de luz variable.
+        // Ganancia alta para detectar blanco (línea) y naranja (pelota) en campo.
         sensorSur.setGain(15);
-        sensorFrenteIzq.setGain(15);
-        sensorFrenteDer.setGain(15);
+        sensorNorte.setGain(15);
+        sensorPelota.setGain(15);
 
-        // Activa el LED de los sensores si el hardware lo soporta.
+        // LED encendido: ilumina el objeto y mejora la lectura de color.
         enableSensorLed(sensorSur, true);
-        enableSensorLed(sensorFrenteIzq, true);
-        enableSensorLed(sensorFrenteDer, true);
+        enableSensorLed(sensorNorte, true);
+        enableSensorLed(sensorPelota, true);
 
         // --- Mapeo del botón de arranque ---
         // botonArranque = hwMap.get(TouchSensor.class, "botonArranque");
@@ -109,28 +109,58 @@ public class FutBotHardware {
     }
 
     // -------------------------------------------------------------------------
-    // Detección de línea blanca — triángulo equilátero
+    // Detección de línea blanca
     // Canal alfa normalizado (0.0 a 1.0); blanco supera típicamente 0.75.
     // -------------------------------------------------------------------------
 
-    /** @return true si el sensor trasero detecta la línea blanca. */
+    /** @return true si el sensor sur detecta la línea blanca. */
     public boolean detectaBlancoSur() {
         return sensorSur.getNormalizedColors().alpha >= UMBRAL_BLANCO;
     }
 
-    /** @return true si el sensor frente-izquierda detecta la línea blanca. */
-    public boolean detectaBlancoFrenteIzq() {
-        return sensorFrenteIzq.getNormalizedColors().alpha >= UMBRAL_BLANCO;
+    /** @return true si el sensor norte detecta la línea blanca. */
+    public boolean detectaBlancoNorte() {
+        return sensorNorte.getNormalizedColors().alpha >= UMBRAL_BLANCO;
     }
 
-    /** @return true si el sensor frente-derecha detecta la línea blanca. */
-    public boolean detectaBlancoFrenteDer() {
-        return sensorFrenteDer.getNormalizedColors().alpha >= UMBRAL_BLANCO;
+    // -------------------------------------------------------------------------
+    // Detección de pelota naranja — sensor de posesión/posesión
+    // Comprueba canal rojo alto y azul bajo para aislar el color naranja.
+    // -------------------------------------------------------------------------
+
+    /** @return true si el sensor de posesión detecta la pelota naranja (posesión). */
+    public boolean detectaNaranjaPelota() {
+        float r = sensorPelota.getNormalizedColors().red;
+        float b = sensorPelota.getNormalizedColors().blue;
+        return r >= UMBRAL_NARANJA_R && b <= UMBRAL_NARANJA_B;
     }
 
     /** @return true si el botón pull-pin de arranque está presionado (retenido). */
     public boolean botonPresionado() {
         // return botonArranque.isPressed();
         return false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Mecanismo de disparo (kicker / driblador)
+    // -------------------------------------------------------------------------
+
+    // TODO: Mapear el actuador cuando el hardware esté definido.
+    //   Servo:  private Servo kickerServo = null;
+    //   Motor:  private DcMotor dribladorMotor = null;
+    // Y en init():
+    //   kickerServo = hwMap.get(Servo.class, "kickerServo");
+
+    /**
+     * Activa el mecanismo de disparo/driblador un ciclo.
+     * Sin efecto hasta que se conecte y mapee el hardware físico.
+     *
+     * Implementación sugerida con servo:
+     *   kickerServo.setPosition(1.0);
+     *   sleep(150);
+     *   kickerServo.setPosition(0.0);
+     */
+    public void kick() {
+        // placeholder — activar cuando el hardware esté listo
     }
 }

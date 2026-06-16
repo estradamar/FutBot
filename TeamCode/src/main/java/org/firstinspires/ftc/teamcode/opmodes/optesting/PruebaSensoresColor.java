@@ -33,22 +33,22 @@ public class PruebaSensoresColor extends LinearOpMode {
         // Crear un diagnóstico por sensor, con nombre y acción de evasión real.
         ColorSensorDiagnostico[] sensores = {
             new ColorSensorDiagnostico(
-                hw.sensorFrenteIzq,
-                "FrenteIzq (~300 grados)",
-                "RETROCEDER 1 seg",
-                UMBRAL_BLANCO
-            ),
-            new ColorSensorDiagnostico(
-                hw.sensorFrenteDer,
-                "FrenteDer (~60 grados)",
+                hw.sensorNorte,
+                "Norte (Línea Frente)",
                 "RETROCEDER 1 seg",
                 UMBRAL_BLANCO
             ),
             new ColorSensorDiagnostico(
                 hw.sensorSur,
-                "Sur (180 grados)",
+                "Sur (Línea Trasera)",
                 "AVANZAR 1 seg",
                 UMBRAL_BLANCO
+            ),
+            new ColorSensorDiagnostico(
+                hw.sensorPelota,
+                "Pelota (Posesion)",
+                "POSESION CONFIRMADA",
+                UMBRAL_BLANCO // Usando blanco como referencia para prueba genérica
             )
         };
 
