@@ -51,8 +51,14 @@ public class FutBotFSM {
     /** Ganancia del controlador proporcional (P) para el seguimiento angular de la pelota. */
     public static final double KP = 0.005;
 
-    /** Potencia base de avance al aproximarse a la pelota en P3. */
+    /** Potencia base de avance al aproximarse a la pelota en P3 (pelota lejos). */
     public static final double PODER_AVANCE = 0.55;
+
+    /** Potencia mínima de avance cuando la pelota está muy cerca (y ≥ Y_PELOTA_CERCA). */
+    public static final double PODER_AVANCE_MIN = 0.20;
+
+    /** Coordenada Y (px) a partir de la cual se considera la pelota "cerca" y se frena. */
+    public static final int Y_PELOTA_CERCA = 180;
 
     /** Potencia de avance durante el disparo (P2 caso A: portería centrada). */
     public static final double PODER_ATAQUE = 0.70;
@@ -82,6 +88,11 @@ public class FutBotFSM {
     private long   tiempoUltimaVezVistaPelota = -1; // -1 = nunca detectada
     private double ultimoPoderIzq             = 0;
     private double ultimoPoderDer             = 0;
+
+    // Lecturas del último ciclo — expuestas para telemetría sin re-leer sensores
+    private boolean ultimoBlancoNorte   = false;
+    private boolean ultimoBlancoSur     = false;
+    private boolean ultimoNaranjaPelota = false;
 
     // =========================================================================
     // Constructor
@@ -114,24 +125,40 @@ public class FutBotFSM {
         // Si se activa, descarta todo lo demás y reacciona de inmediato.
         // =====================================================================
 
-        if (hw.detectaBlancoNorte()) {
-            // Sensor norte sobre la línea → retroceder
+        boolean blancoNorte = hw.detectaBlancoNorte();
+        boolean blancoSur   = hw.detectaBlancoSur();
+        ultimoBlancoNorte   = blancoNorte;
+        ultimoBlancoSur     = blancoSur;
+
+        if (blancoNorte && blancoSur) {
+            // Ambos sensores en línea: robot atrapado en esquina → girar en eje a la derecha
             estadoActual = Estado.FAILSAFE_PENALTI;
-            aplicarPoder(hw, -PODER_EVASION, -PODER_EVASION);
+            tiempoUltimaVezVistaPelota = -1; // no reproducir comando de evasión en debounce
+            hw.setPoderMotores(PODER_GIRO, -PODER_GIRO);
             return estadoActual;
         }
 
-        if (hw.detectaBlancoSur()) {
+        if (blancoNorte) {
+            // Sensor norte sobre la línea → retroceder
+            estadoActual = Estado.FAILSAFE_PENALTI;
+            tiempoUltimaVezVistaPelota = -1;
+            hw.setPoderMotores(-PODER_EVASION, -PODER_EVASION);
+            return estadoActual;
+        }
+
+        if (blancoSur) {
             // Sensor trasero sobre la línea → avanzar
             estadoActual = Estado.FAILSAFE_PENALTI;
-            aplicarPoder(hw, PODER_EVASION, PODER_EVASION);
+            tiempoUltimaVezVistaPelota = -1;
+            hw.setPoderMotores(PODER_EVASION, PODER_EVASION);
             return estadoActual;
         }
 
         if (vision.getAnchoPorteriaPorId(idPropia) >= UMBRAL_ANCHO_PENALTI_PX) {
             // Portería propia muy grande en cámara = estamos dentro del área de penalti
             estadoActual = Estado.FAILSAFE_PENALTI;
-            aplicarPoder(hw, -PODER_EVASION, -PODER_EVASION);
+            tiempoUltimaVezVistaPelota = -1;
+            hw.setPoderMotores(-PODER_EVASION, -PODER_EVASION);
             return estadoActual;
         }
 
@@ -141,7 +168,10 @@ public class FutBotFSM {
         // La cámara ya no interviene en esta decisión.
         // =====================================================================
 
-        if (hw.detectaNaranjaPelota()) {
+        boolean tienePelota = hw.detectaNaranjaPelota();
+        ultimoNaranjaPelota = tienePelota;
+
+        if (tienePelota) {
             estadoActual = Estado.ATAQUE_DISPARO;
             registrarPelotaVista();
 
@@ -198,11 +228,14 @@ public class FutBotFSM {
                     poderDer = PODER_ORBITA_LENTO;
                 }
             } else {
-                // Sin riesgo de autogol: control proporcional directo sobre la pelota
+                // Sin riesgo de autogol: control proporcional directo sobre la pelota.
+                // Avance dinámico: reduce velocidad al acercarse (y grande = pelota cerca).
                 double error      = vision.getErrorAngularPelota(); // [-160, 160]
                 double correccion = KP * error;
-                poderIzq = PODER_AVANCE + correccion;
-                poderDer = PODER_AVANCE - correccion;
+                double t          = Math.min(1.0, vision.getYPelota() / (double) Y_PELOTA_CERCA);
+                double avance     = PODER_AVANCE * (1.0 - t) + PODER_AVANCE_MIN * t;
+                poderIzq = Math.max(-1.0, Math.min(1.0, avance + correccion));
+                poderDer = Math.max(-1.0, Math.min(1.0, avance - correccion));
             }
 
             registrarPelotaVista();
@@ -238,9 +271,16 @@ public class FutBotFSM {
     // =========================================================================
 
     /** @return Estado activo en el último ciclo. */
-    public Estado getEstado() {
-        return estadoActual;
-    }
+    public Estado getEstado() { return estadoActual; }
+
+    /** @return Última lectura del sensor norte (mismo valor que usó el FSM ese ciclo). */
+    public boolean getUltimoBlancoNorte()   { return ultimoBlancoNorte; }
+
+    /** @return Última lectura del sensor sur. */
+    public boolean getUltimoBlancoSur()     { return ultimoBlancoSur; }
+
+    /** @return Última lectura del sensor de posesión naranja. */
+    public boolean getUltimoNaranjaPelota() { return ultimoNaranjaPelota; }
 
     /**
      * Aplica potencia a los motores y guarda los valores para el debounce de P4.

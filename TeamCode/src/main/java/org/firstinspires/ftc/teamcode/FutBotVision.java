@@ -29,7 +29,7 @@ public class FutBotVision {
     // -------------------------------------------------------------------------
     // Dispositivo I2C
     // -------------------------------------------------------------------------
-    public HuskyLens huskyLens = null;
+    private HuskyLens huskyLens = null;
 
     // -------------------------------------------------------------------------
     // Estado interno actualizado por actualizarDatos()
@@ -64,8 +64,9 @@ public class FutBotVision {
      */
     public void init(HardwareMap hwMap) {
         huskyLens = hwMap.get(HuskyLens.class, "huskyLens");
-        
-        // Inicializa el dispositivo para empezar a comunicarse
+        if (!huskyLens.knock()) {
+            throw new RuntimeException("HuskyLens no responde — verificar cable I2C y nombre del dispositivo en la DS");
+        }
         huskyLens.selectAlgorithm(HuskyLens.Algorithm.OBJECT_TRACKING);
     }
 
@@ -93,9 +94,9 @@ public class FutBotVision {
         anchoPorteriaAmarilla = 0;
 
         HuskyLens.Block[] blocks = huskyLens.blocks();
-        
-        for (int i = 0; i < blocks.length; i++) {
-            HuskyLens.Block block = blocks[i];
+        if (blocks == null) return; // cámara sin respuesta — estado ya reseteado arriba
+
+        for (HuskyLens.Block block : blocks) {
             
             if (block.id == ID_PELOTA) {
                 xPelota = block.x;
@@ -137,6 +138,11 @@ public class FutBotVision {
      */
     public boolean hayPorteria(int id) {
         return idPorteriaDetectada == id && xPorteria != -1;
+    }
+
+    /** @return Coordenada Y del centro de la pelota (0=arriba/lejos, 240=abajo/cerca); -1 si no detectada. */
+    public int getYPelota() {
+        return yPelota;
     }
 
     /**

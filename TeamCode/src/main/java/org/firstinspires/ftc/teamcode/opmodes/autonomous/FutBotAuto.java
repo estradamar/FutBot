@@ -53,15 +53,6 @@ public abstract class FutBotAuto extends LinearOpMode {
         telemetry.addData("Estado",   "Listo. Esperando START...");
         telemetry.update();
 
-        /*
-        // Arranque seguro con pull-pin físico (descomentar cuando esté disponible).
-        while (opModeIsActive() && hw.botonPresionado()) {
-            hw.detener();
-            telemetry.addData("Arranque", "Suelta el boton pull-pin para iniciar");
-            telemetry.update();
-        }
-        */
-
         waitForStart();
 
         // =====================================================================
@@ -93,8 +84,8 @@ public abstract class FutBotAuto extends LinearOpMode {
 
         // Pelota
         if (vision.hayPelota()) {
-            telemetry.addData("Pelota", "DETECTADA  err=%.0f px  area=%d px2",
-                    vision.getErrorAngularPelota(), vision.getAreaPelota());
+            telemetry.addData("Pelota", "DETECTADA  err=%.0f px  y=%d px  area=%d px2",
+                    vision.getErrorAngularPelota(), vision.getYPelota(), vision.getAreaPelota());
         } else {
             telemetry.addLine("Pelota:  no detectada");
         }
@@ -121,13 +112,13 @@ public abstract class FutBotAuto extends LinearOpMode {
             telemetry.addData("Propia [" + nombrePorteria(idProp) + "]", "no visible");
         }
 
-        // Sensores de color
+        // Sensores de color — usa los valores ya leídos por el FSM en este ciclo
         telemetry.addData("Linea blanca",
                 "Norte=%s  Sur=%s",
-                hw.detectaBlancoNorte() ? "SI" : "--",
-                hw.detectaBlancoSur()   ? "SI" : "--");
+                fsm.getUltimoBlancoNorte()   ? "SI" : "--",
+                fsm.getUltimoBlancoSur()     ? "SI" : "--");
         telemetry.addData("Posesion (pelota)",
-                hw.detectaNaranjaPelota() ? "PELOTA" : "--");
+                fsm.getUltimoNaranjaPelota() ? "PELOTA" : "--");
 
         telemetry.addLine("─────────────────────────────────");
     }

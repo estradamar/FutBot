@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.opmodes.optesting;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 
 import org.firstinspires.ftc.teamcode.FutBotHardware;
 import org.firstinspires.ftc.teamcode.tests.ColorSensorDiagnostico;
@@ -30,7 +31,7 @@ public class PruebaSensoresColor extends LinearOpMode {
         FutBotHardware hw = new FutBotHardware();
         hw.init(hardwareMap);
 
-        // Crear un diagnóstico por sensor, con nombre y acción de evasión real.
+        // Sensores de línea blanca (usan canal alpha).
         ColorSensorDiagnostico[] sensores = {
             new ColorSensorDiagnostico(
                 hw.sensorNorte,
@@ -43,12 +44,6 @@ public class PruebaSensoresColor extends LinearOpMode {
                 "Sur (Línea Trasera)",
                 "AVANZAR 1 seg",
                 UMBRAL_BLANCO
-            ),
-            new ColorSensorDiagnostico(
-                hw.sensorPelota,
-                "Pelota (Posesion)",
-                "POSESION CONFIRMADA",
-                UMBRAL_BLANCO // Usando blanco como referencia para prueba genérica
             )
         };
 
@@ -71,31 +66,43 @@ public class PruebaSensoresColor extends LinearOpMode {
             telemetry.addLine("─────────────────────────────────");
             telemetry.addLine("");
 
-            boolean alguno = false;
+            boolean algunaLinea = false;
+            boolean posesion    = false;
 
+            // --- Sensores de línea blanca ---
             for (ColorSensorDiagnostico s : sensores) {
 
-                float alpha        = s.getAlpha();
-                boolean detectado  = s.detectaBlanco();
+                float alpha       = s.getAlpha();
+                boolean detectado = s.detectaBlanco();
 
-                // Línea de estado: nombre + valor + indicador visual
                 String indicador = detectado ? ">>> BLANCO DETECTADO <<<" : "sin linea";
                 telemetry.addData(s.getNombre(), "alpha=%.3f  |  %s", alpha, indicador);
 
                 if (detectado) {
                     telemetry.addData("  Accion en produccion", s.getAccionImplicada());
-                    alguno = true;
+                    algunaLinea = true;
                 }
+            }
+
+            // --- Sensor de pelota (posesión) — una sola lectura I2C para display y detección ---
+            NormalizedRGBA cp = hw.sensorPelota.getNormalizedColors();
+            posesion           = cp.red >= 0.35f && cp.blue <= 0.12f; // mismos umbrales que FutBotHardware
+            String indPelota   = posesion ? ">>> NARANJA DETECTADA <<<" : "sin pelota";
+            telemetry.addData("Pelota (Posesion)", "r=%.3f b=%.3f  |  %s", cp.red, cp.blue, indPelota);
+            if (posesion) {
+                telemetry.addData("  Accion en produccion", "POSESION CONFIRMADA");
             }
 
             telemetry.addLine("");
             telemetry.addLine("─────────────────────────────────");
 
             // Resumen de estado global
-            if (alguno) {
+            if (algunaLinea) {
                 telemetry.addLine("  ESTADO: LINEA DETECTADA — se ejecutaria evasion");
+            } else if (posesion) {
+                telemetry.addLine("  ESTADO: PELOTA EN POSESION — se activaria P2");
             } else {
-                telemetry.addLine("  ESTADO: campo libre, sin lineas detectadas");
+                telemetry.addLine("  ESTADO: campo libre, sin detecciones");
             }
 
             telemetry.addLine("─────────────────────────────────");

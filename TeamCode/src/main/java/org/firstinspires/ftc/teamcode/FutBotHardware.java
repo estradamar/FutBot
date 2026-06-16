@@ -3,8 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.hardware.dfrobot.HuskyLens;
-import com.qualcomm.robotcore.hardware.TouchSensor;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 
 /**
  * Mapeo y control centralizado del hardware de FutBot.
@@ -130,15 +129,8 @@ public class FutBotHardware {
 
     /** @return true si el sensor de posesión detecta la pelota naranja (posesión). */
     public boolean detectaNaranjaPelota() {
-        float r = sensorPelota.getNormalizedColors().red;
-        float b = sensorPelota.getNormalizedColors().blue;
-        return r >= UMBRAL_NARANJA_R && b <= UMBRAL_NARANJA_B;
-    }
-
-    /** @return true si el botón pull-pin de arranque está presionado (retenido). */
-    public boolean botonPresionado() {
-        // return botonArranque.isPressed();
-        return false;
+        NormalizedRGBA c = sensorPelota.getNormalizedColors();
+        return c.red >= UMBRAL_NARANJA_R && c.blue <= UMBRAL_NARANJA_B;
     }
 
     // -------------------------------------------------------------------------
