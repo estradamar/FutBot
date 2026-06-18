@@ -32,8 +32,9 @@ public class FutBotHardware {
 
     // Ajustar tras calibración en campo; rango normalizado: 0.0 - 1.0.
     private static final float UMBRAL_BLANCO    = 0.75f; // línea blanca: canal alpha
-    private static final float UMBRAL_NARANJA_R = 0.35f; // naranja: mínimo rojo
-    private static final float UMBRAL_NARANJA_B = 0.12f; // naranja: máximo azul
+    // Umbrales de pelota más permisivos porque el sensor queda muy cerca del objeto.
+    public  static final float UMBRAL_NARANJA_R = 0.22f; // naranja: mínimo rojo  (antes 0.35)
+    public  static final float UMBRAL_NARANJA_B = 0.20f; // naranja: máximo azul  (antes 0.12)
 
     // -------------------------------------------------------------------------
     // Inicialización
@@ -70,10 +71,12 @@ public class FutBotHardware {
         sensorNorte    = hwMap.get(RevColorSensorV3.class, "sensorNorte");
         sensorPelota = hwMap.get(RevColorSensorV3.class, "sensorPelota");
 
-        // Ganancia alta para detectar blanco (línea) y naranja (pelota) en campo.
+        // Ganancia para sensores de línea y pelota.
+        // El sensor de pelota usa ganancia mayor porque la pelota puede quedar
+        // pegada al sensor y la señal normalizada resulta débil sin amplificación.
         sensorSur.setGain(15);
         sensorNorte.setGain(15);
-        sensorPelota.setGain(15);
+        sensorPelota.setGain(25);
 
         // LED encendido: ilumina el objeto y mejora la lectura de color.
         enableSensorLed(sensorSur, true);

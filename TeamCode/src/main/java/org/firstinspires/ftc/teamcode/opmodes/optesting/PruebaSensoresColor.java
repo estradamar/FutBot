@@ -72,11 +72,13 @@ public class PruebaSensoresColor extends LinearOpMode {
             // --- Sensores de línea blanca ---
             for (ColorSensorDiagnostico s : sensores) {
 
-                float alpha       = s.getAlpha();
-                boolean detectado = s.detectaBlanco();
+                NormalizedRGBA c  = s.getRawColors();
+                float alpha       = c.alpha;
+                boolean detectado = alpha >= UMBRAL_BLANCO;
 
                 String indicador = detectado ? ">>> BLANCO DETECTADO <<<" : "sin linea";
-                telemetry.addData(s.getNombre(), "alpha=%.3f  |  %s", alpha, indicador);
+                telemetry.addData(s.getNombre(), "a=%.3f r=%.3f g=%.3f b=%.3f | %s",
+                        alpha, c.red, c.green, c.blue, indicador);
 
                 if (detectado) {
                     telemetry.addData("  Accion en produccion", s.getAccionImplicada());
@@ -86,9 +88,13 @@ public class PruebaSensoresColor extends LinearOpMode {
 
             // --- Sensor de pelota (posesión) — una sola lectura I2C para display y detección ---
             NormalizedRGBA cp = hw.sensorPelota.getNormalizedColors();
-            posesion           = cp.red >= 0.35f && cp.blue <= 0.12f; // mismos umbrales que FutBotHardware
+            posesion           = hw.detectaNaranjaPelota();
             String indPelota   = posesion ? ">>> NARANJA DETECTADA <<<" : "sin pelota";
-            telemetry.addData("Pelota (Posesion)", "r=%.3f b=%.3f  |  %s", cp.red, cp.blue, indPelota);
+            telemetry.addData("Pelota (Posesion)",
+                    "r=%.3f b=%.3f  |  umbral r>=%.2f b<=%.2f  |  %s",
+                    cp.red, cp.blue,
+                    FutBotHardware.UMBRAL_NARANJA_R, FutBotHardware.UMBRAL_NARANJA_B,
+                    indPelota);
             if (posesion) {
                 telemetry.addData("  Accion en produccion", "POSESION CONFIRMADA");
             }

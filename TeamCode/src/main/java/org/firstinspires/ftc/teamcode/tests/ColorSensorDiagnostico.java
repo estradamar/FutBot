@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.tests;
 
 import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 
 /**
  * Wrapper de diagnóstico para un RevColorSensorV3.
@@ -35,6 +36,11 @@ public class ColorSensorDiagnostico {
     /** @return Lectura actual del canal alfa normalizado (0.0 a 1.0). */
     public float getAlpha() {
         return sensor.getNormalizedColors().alpha;
+    }
+
+    /** @return Lectura RGBA completa en una sola llamada I2C (usar para telemetría detallada). */
+    public NormalizedRGBA getRawColors() {
+        return sensor.getNormalizedColors();
     }
 
     /** @return true si la lectura actual supera el umbral de blanco. */
